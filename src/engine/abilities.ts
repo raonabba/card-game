@@ -23,10 +23,7 @@ function addLog(state: GameState, msg: string) {
 export function applyDeath(state: GameState): GameState {
   let s = { ...state };
 
-  const checkField = (
-    field: (Minion | null)[],
-    isPlayer: boolean
-  ): (Minion | null)[] => {
+  const checkField = (field: (Minion | null)[]): (Minion | null)[] => {
     return field.map((m) => {
       if (!m || m.hp > 0) return m;
 
@@ -40,27 +37,51 @@ export function applyDeath(state: GameState): GameState {
       }
 
       addLog(s, `${m.name} 사망!`);
-      // trigger ally cond_revive (sagittarius style)
-      const allyField = isPlayer ? s.playerField : s.aiField;
-      allyField.forEach((ally) => {
-        if (
-          ally &&
-          ally.instanceId !== m.instanceId &&
-          ally.defenseAbility.type === 'cond_revive' &&
-          ally.revivesLeft > 0 &&
-          ally.hp <= 0
-        ) {
-          // handled in their own death check
-        }
-      });
       return null;
     });
   };
 
-  s.playerField = checkField(s.playerField, true);
-  s.aiField = checkField(s.aiField, false);
+  s.playerField = checkField(s.playerField);
+  s.aiField = checkField(s.aiField);
   s.playerField = compactField(s.playerField);
   s.aiField = compactField(s.aiField);
+  s = checkCondSwap(s);
+  return s;
+}
+
+export function checkCondSwap(state: GameState): GameState {
+  let s = { ...state };
+
+  const processField = (field: (Minion | null)[]): (Minion | null)[] => {
+    const newField = [...field];
+    for (let i = 0; i < newField.length; i++) {
+      const m = newField[i];
+      if (!m || m.defenseAbility.type !== 'cond_swap' || m.defenseAbilityUsesLeft <= 0) continue;
+      if (m.hp > m.maxHp * 0.5) continue;
+
+      let strongestIdx = -1;
+      let highestScore = -1;
+      for (let j = 0; j < newField.length; j++) {
+        if (j === i || !newField[j]) continue;
+        const score = newField[j]!.atk + newField[j]!.hp;
+        if (score > highestScore) {
+          highestScore = score;
+          strongestIdx = j;
+        }
+      }
+      if (strongestIdx < 0) continue;
+
+      const mA = newField[i]!;
+      const mB = newField[strongestIdx]!;
+      newField[i] = { ...mB, position: i };
+      newField[strongestIdx] = { ...mA, position: strongestIdx, defenseAbilityUsesLeft: mA.defenseAbilityUsesLeft - 1 };
+      addLog(s, `${mA.name} 하데스의 부름 발동! ${mB.name}과 위치 교환!`);
+    }
+    return newField;
+  };
+
+  s.playerField = processField(s.playerField);
+  s.aiField = processField(s.aiField);
   return s;
 }
 
@@ -193,6 +214,7 @@ export function doAttack(
 
   s = applyDeath(s);
   s = checkCoupleBonus(s);
+  s = checkCondSwap(s);
   return s;
 }
 
@@ -348,7 +370,6 @@ export function useAttackAbility(
       const tf = isPlayer ? 'aiField' : 'playerField';
       const pisces = s[field].find((m) => m?.instanceId === sourceId) as Minion;
       if (!pisces) break;
-      // In opponent's field, push cards adjacent to the "center" positions (0,1)
       const newField = [...s[tf]];
       for (let i = 0; i < 6; i++) {
         const m = newField[i];
@@ -364,6 +385,17 @@ export function useAttackAbility(
       break;
     }
 
+    case 'double_power': {
+      addLog(s, `${source.name} 독침 준비! 다음 공격 ATK 2배!`);
+      const updated = {
+        ...source,
+        statusEffects: [...source.statusEffects, 'double_power' as StatusEffect],
+      };
+      s[field] = s[field].map((m) => (m?.instanceId === sourceId ? updated : m));
+      break;
+    }
+
+    case 'none':
     default:
       break;
   }
@@ -481,6 +513,7 @@ export function useDefenseAbility(
       break;
     }
 
+    case 'none':
     default:
       break;
   }

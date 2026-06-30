@@ -212,7 +212,8 @@ export default function GameBoard() {
   const handleUseAttackAbility = () => {
     if (!selectedMinion) return;
     const { type } = selectedMinion.attackAbility;
-    const selfTarget = ['double_shot', 'double_turn', 'push_all', 'push_outward', 'summon_star'].includes(type);
+    if (type === 'none' || type === 'piercing') { resetUI(); return; }
+    const selfTarget = ['double_shot', 'double_turn', 'push_all', 'push_outward', 'summon_star', 'double_power'].includes(type);
     if (selfTarget) { useAttackSkill(selectedMinion.instanceId, []); resetUI(); return; }
     const needed = type === 'snipe' || type === 'push_two' ? 2 : 1;
     setPendingSkill('attack');
@@ -224,6 +225,7 @@ export default function GameBoard() {
   const handleUseDefenseAbility = () => {
     if (!selectedMinion) return;
     const { type } = selectedMinion.defenseAbility;
+    if (type === 'none' || type === 'cond_revive' || type === 'revive_once' || type === 'cond_couple' || type === 'cond_swap') { resetUI(); return; }
     const selfApply = ['ghost', 'double_power', 'cond_disguise', 'cond_reverse'].includes(type);
     if (selfApply) { useDefenseSkill(selectedMinion.instanceId, []); resetUI(); return; }
     setPendingSkill('defense');

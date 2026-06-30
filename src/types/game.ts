@@ -1,4 +1,5 @@
 export type AbilityType =
+  | 'none'
   | 'double_shot'
   | 'swap'
   | 'double_turn'
