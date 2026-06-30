@@ -32,6 +32,7 @@ export default function GameBoard() {
   const [isAnimating, setIsAnimating] = useState(false);
   const [playerHeroHit, setPlayerHeroHit] = useState(false);
   const [aiHeroHit, setAiHeroHit] = useState(false);
+  const [summonVideo, setSummonVideo] = useState<string | null>(null);
 
   const playerHpMapRef = useRef<Map<string, number>>(new Map());
   const aiHpMapRef = useRef<Map<string, number>>(new Map());
@@ -104,6 +105,12 @@ export default function GameBoard() {
     }
   };
 
+  const ZODIAC_VIDEO_IDS = new Set(['aries','taurus','gemini','cancer','leo','virgo','libra','scorpio','sagittarius','capricorn','aquarius','pisces']);
+
+  const triggerSummonVideo = (cardId: string) => {
+    if (ZODIAC_VIDEO_IDS.has(cardId)) setSummonVideo(cardId);
+  };
+
   // ── 드래그 앤 드롭 ──
   const handleDragStart = (card: CardDef) => {
     setDragCardId(card.id);
@@ -115,6 +122,7 @@ export default function GameBoard() {
     const card = selectedCard ?? game.playerHand.find((c) => c.id === dragCardId);
     if (card && game.playerMana >= card.mana) {
       playCardToSlot(card, slot);
+      triggerSummonVideo(card.id);
     }
     setDragCardId(null);
     resetUI();
@@ -136,6 +144,7 @@ export default function GameBoard() {
 
     if (uiMode === 'placing' && selectedCard && !minion) {
       playCardToSlot(selectedCard, slot);
+      triggerSummonVideo(selectedCard.id);
       resetUI();
       return;
     }
@@ -406,6 +415,29 @@ export default function GameBoard() {
           <div className="text-gray-500 text-sm py-8">핸드가 비어있습니다</div>
         )}
       </div>
+
+      {/* ── SUMMON VIDEO OVERLAY ── */}
+      <AnimatePresence>
+        {summonVideo && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none"
+          >
+            <video
+              key={summonVideo}
+              src={`/${summonVideo}.MP4`}
+              autoPlay
+              muted
+              playsInline
+              className="w-full h-full object-cover"
+              onEnded={() => setSummonVideo(null)}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── GAME OVER OVERLAY ── */}
       <AnimatePresence>
