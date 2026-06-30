@@ -434,7 +434,7 @@ export default function GameBoard() {
               muted
               playsInline
               className="rounded-2xl shadow-2xl"
-              style={{ width: '320px', height: '320px', objectFit: 'cover' }}
+              style={{ maxWidth: '72vw', maxHeight: '72vh' }}
               onEnded={() => setSummonVideo(null)}
             />
           </motion.div>
