@@ -8,7 +8,7 @@ export const CARD_DEFS: CardDef[] = [
     mana: 3,
     atk: 3,
     hp: 3,
-    image: '/cards/aries.png',
+    image: '/cards/aries.jpg',
     attackAbility: {
       type: 'double_shot',
       kind: 'attack',
@@ -29,7 +29,7 @@ export const CARD_DEFS: CardDef[] = [
     mana: 5,
     atk: 4,
     hp: 5,
-    image: '/cards/taurus.png',
+    image: '/cards/taurus.jpg',
     attackAbility: {
       type: 'double_turn',
       kind: 'attack',
@@ -50,7 +50,7 @@ export const CARD_DEFS: CardDef[] = [
     mana: 4,
     atk: 3,
     hp: 4,
-    image: '/cards/gemini.png',
+    image: '/cards/gemini.jpg',
     attackAbility: {
       type: 'knockback',
       kind: 'attack',
@@ -72,7 +72,7 @@ export const CARD_DEFS: CardDef[] = [
     mana: 5,
     atk: 2,
     hp: 6,
-    image: '/cards/cancer.png',
+    image: '/cards/cancer.jpg',
     attackAbility: {
       type: 'snipe',
       kind: 'attack',
@@ -94,7 +94,7 @@ export const CARD_DEFS: CardDef[] = [
     mana: 6,
     atk: 5,
     hp: 5,
-    image: '/cards/leo.png',
+    image: '/cards/leo.jpg',
     attackAbility: {
       type: 'push_two',
       kind: 'attack',
@@ -116,7 +116,7 @@ export const CARD_DEFS: CardDef[] = [
     mana: 7,
     atk: 2,
     hp: 4,
-    image: '/cards/virgo.png',
+    image: '/cards/virgo.jpg',
     attackAbility: {
       type: 'summon_star',
       kind: 'attack',
@@ -137,7 +137,7 @@ export const CARD_DEFS: CardDef[] = [
     mana: 5,
     atk: 3,
     hp: 4,
-    image: '/cards/libra.png',
+    image: '/cards/libra.jpg',
     attackAbility: {
       type: 'snipe',
       kind: 'attack',
@@ -160,7 +160,7 @@ export const CARD_DEFS: CardDef[] = [
     mana: 6,
     atk: 4,
     hp: 3,
-    image: '/cards/scorpio.png',
+    image: '/cards/scorpio.jpg',
     attackAbility: {
       type: 'double_power',
       kind: 'attack',
@@ -182,7 +182,7 @@ export const CARD_DEFS: CardDef[] = [
     mana: 4,
     atk: 4,
     hp: 3,
-    image: '/cards/sagittarius.png',
+    image: '/cards/sagittarius.jpg',
     attackAbility: {
       type: 'piercing',
       kind: 'attack',
@@ -204,7 +204,7 @@ export const CARD_DEFS: CardDef[] = [
     mana: 7,
     atk: 3,
     hp: 5,
-    image: '/cards/capricorn.png',
+    image: '/cards/capricorn.jpg',
     attackAbility: {
       type: 'push_all',
       kind: 'attack',
@@ -226,7 +226,7 @@ export const CARD_DEFS: CardDef[] = [
     mana: 4,
     atk: 3,
     hp: 4,
-    image: '/cards/aquarius.png',
+    image: '/cards/aquarius.jpg',
     attackAbility: {
       type: 'pull',
       kind: 'attack',
@@ -248,7 +248,7 @@ export const CARD_DEFS: CardDef[] = [
     mana: 6,
     atk: 3,
     hp: 5,
-    image: '/cards/pisces.png',
+    image: '/cards/pisces.jpg',
     attackAbility: {
       type: 'push_outward',
       kind: 'attack',
