@@ -2,18 +2,18 @@ import { motion } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 
 const ZODIAC_ICONS = [
-  { name: 'ARIES',       src: '/양자리.png' },
-  { name: 'TAURUS',      src: '/황소자리.png' },
-  { name: 'GEMINI',      src: '/쌍둥이자리.png' },
-  { name: 'CANCER',      src: '/게자리.png' },
-  { name: 'LEO',         src: '/사자자리.png' },
-  { name: 'VIRGO',       src: '/처녀자리.png' },
-  { name: 'LIBRA',       src: '/천칭자리.png' },
-  { name: 'SCORPIO',     src: '/전갈자리.png' },
-  { name: 'SAGITTARIUS', src: '/사수자리.png' },
-  { name: 'CAPRICORN',   src: '/염소자리.png' },
-  { name: 'AQUARIUS',    src: '/물병자리.PNG' },
-  { name: 'PISCES',      src: '/물고기자리.PNG' },
+  { name: 'ARIES',       src: '/cards/aries.jpg' },
+  { name: 'TAURUS',      src: '/cards/taurus.jpg' },
+  { name: 'GEMINI',      src: '/cards/gemini.jpg' },
+  { name: 'CANCER',      src: '/cards/cancer.jpg' },
+  { name: 'LEO',         src: '/cards/leo.jpg' },
+  { name: 'VIRGO',       src: '/cards/virgo.jpg' },
+  { name: 'LIBRA',       src: '/cards/libra.jpg' },
+  { name: 'SCORPIO',     src: '/cards/scorpio.jpg' },
+  { name: 'SAGITTARIUS', src: '/cards/sagittarius.jpg' },
+  { name: 'CAPRICORN',   src: '/cards/capricorn.jpg' },
+  { name: 'AQUARIUS',    src: '/cards/aquarius.jpg' },
+  { name: 'PISCES',      src: '/cards/pisces.jpg' },
 ];
 
 export default function MainMenu() {
