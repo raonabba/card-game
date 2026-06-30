@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    margin: 0;
+    background-color: #1a0a2e;
+    font-family: 'Georgia', serif;
+    overflow: hidden;
+    user-select: none;
+  }
+  #root {
+    width: 100%;
+    height: 100vh;
+  }
+}
+
+@layer utilities {
+  .card-glow-gold {
+    box-shadow: 0 0 12px 3px rgba(255, 200, 50, 0.6);
+  }
+  .card-glow-green {
+    box-shadow: 0 0 14px 4px rgba(50, 255, 100, 0.8);
+  }
+  .card-glow-red {
+    box-shadow: 0 0 12px 3px rgba(255, 50, 50, 0.7);
+  }
+  .card-glow-blue {
+    box-shadow: 0 0 12px 3px rgba(50, 150, 255, 0.7);
+  }
+  .card-glow-white {
+    box-shadow: 0 0 16px 4px rgba(255,255,255,0.5);
+  }
+}
