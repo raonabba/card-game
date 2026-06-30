@@ -5,22 +5,12 @@ export default function MainMenu() {
   const { startGame } = useGameStore();
 
   return (
-    <div className="w-full h-screen bg-gradient-to-b from-indigo-950 via-purple-950 to-indigo-950 flex flex-col items-center justify-center relative overflow-hidden">
-      {/* Stars */}
-      <div className="absolute inset-0 pointer-events-none">
-        {Array.from({ length: 60 }).map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-1 h-1 bg-white rounded-full animate-pulse"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              opacity: Math.random() * 0.7 + 0.1,
-              animationDelay: `${Math.random() * 3}s`,
-            }}
-          />
-        ))}
-      </div>
+    <div
+      className="w-full h-screen flex flex-col items-center justify-center relative overflow-hidden"
+      style={{ backgroundImage: "url('/menu-bg.png')", backgroundSize: 'cover', backgroundPosition: 'center' }}
+    >
+      {/* Dark overlay for readability */}
+      <div className="absolute inset-0 bg-black/40 pointer-events-none" />
 
       <motion.div
         initial={{ opacity: 0, y: -30 }}

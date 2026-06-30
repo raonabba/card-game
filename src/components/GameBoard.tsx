@@ -185,18 +185,11 @@ export default function GameBoard() {
 
   return (
     <div
-      className="w-full h-screen bg-gradient-to-b from-indigo-950 via-purple-950 to-indigo-950 flex flex-col relative overflow-hidden"
+      className="w-full h-screen flex flex-col relative overflow-hidden"
+      style={{ backgroundImage: "url('/board-bg.png')", backgroundSize: 'cover', backgroundPosition: 'center' }}
       onKeyDown={(e) => e.key === 'Escape' && resetUI()}
       tabIndex={0}
     >
-      {/* Starfield */}
-      <div className="absolute inset-0 opacity-20 pointer-events-none">
-        {Array.from({ length: 40 }).map((_, i) => (
-          <div key={i} className="absolute w-1 h-1 bg-white rounded-full"
-            style={{ left: `${(i * 37 + 13) % 100}%`, top: `${(i * 53 + 7) % 100}%`, opacity: 0.4 + (i % 5) * 0.12 }} />
-        ))}
-      </div>
-
       {/* ── TOP BAR: 메뉴 + AI 영역 ── */}
       <div className="flex items-center px-3 py-2 gap-3 z-10">
         {/* 메뉴로 돌아가기 */}
