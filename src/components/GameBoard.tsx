@@ -7,7 +7,6 @@ import FieldSlot from './FieldSlot';
 import HeroPortrait from './HeroPortrait';
 import ManaBar from './ManaBar';
 import AbilityPanel from './AbilityPanel';
-import GameLog from './GameLog';
 import HowToPlay from './HowToPlay';
 
 type UIMode =
@@ -246,7 +245,6 @@ export default function GameBoard() {
             />
           );
         })}
-        <GameLog logs={game.log} />
       </div>
 
       {/* ── STATUS BAR ── */}
