@@ -6,26 +6,41 @@ interface HandCardProps {
   isSelected?: boolean;
   isPlayable?: boolean;
   onClick?: () => void;
+  onDragStart?: () => void;
 }
 
-export function HandCard({ card, isSelected, isPlayable, onClick }: HandCardProps) {
+export function HandCard({ card, isSelected, isPlayable, onClick, onDragStart }: HandCardProps) {
   return (
     <motion.div
       whileHover={{ y: -20, scale: 1.08 }}
       whileTap={{ scale: 0.95 }}
       onClick={onClick}
+      draggable={isPlayable}
+      onDragStart={(e) => {
+        if (!isPlayable) { e.preventDefault(); return; }
+        onDragStart?.();
+        // Set drag image
+        (e as unknown as DragEvent).dataTransfer?.setData('text/plain', card.id);
+      }}
       className={`
-        relative w-28 h-40 rounded-xl cursor-pointer flex-shrink-0 overflow-hidden
+        relative w-28 h-40 rounded-xl flex-shrink-0 overflow-hidden
         border-2 transition-all duration-200
-        ${isSelected ? 'border-yellow-400 card-glow-gold' : isPlayable ? 'border-blue-400' : 'border-gray-600 opacity-60'}
+        ${isSelected ? 'border-yellow-400 card-glow-gold scale-105' : ''}
+        ${isPlayable && !isSelected ? 'border-blue-400 cursor-grab active:cursor-grabbing' : ''}
+        ${!isPlayable ? 'border-gray-600 opacity-50 cursor-not-allowed' : ''}
         bg-gradient-to-b from-gray-800 to-gray-900
-        shadow-xl
+        shadow-xl select-none
       `}
     >
       {/* Mana cost */}
       <div className="absolute top-1 left-1 w-7 h-7 rounded-full bg-blue-600 border-2 border-blue-300 flex items-center justify-center text-white font-bold text-sm z-10 shadow-lg">
         {card.mana}
       </div>
+
+      {/* Playable hint */}
+      {isPlayable && !isSelected && (
+        <div className="absolute top-1 right-1 text-xs z-10">✨</div>
+      )}
 
       {/* Card image */}
       <div className="w-full h-24 overflow-hidden bg-gray-700">
@@ -34,6 +49,7 @@ export function HandCard({ card, isSelected, isPlayable, onClick }: HandCardProp
             src={card.image}
             alt={card.name}
             className="w-full h-full object-cover object-top"
+            draggable={false}
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = 'none';
             }}
@@ -88,12 +104,12 @@ export function FieldCard({ minion, isSelected, isAttackable, isOwn, onClick }: 
         relative w-20 h-28 rounded-lg cursor-pointer overflow-hidden
         border-2 transition-all duration-200
         ${isSelected ? 'border-yellow-400 card-glow-gold' : ''}
-        ${isAttackable ? 'border-red-400 card-glow-red' : ''}
+        ${isAttackable ? 'border-red-400 card-glow-red animate-pulse' : ''}
         ${canAct && !isSelected && !isAttackable ? 'border-green-400 card-glow-green' : ''}
         ${!isSelected && !isAttackable && !canAct ? 'border-gray-600' : ''}
         ${hasGhost ? 'opacity-60 card-glow-white' : ''}
         ${hasLockdown ? 'grayscale' : ''}
-        bg-gradient-to-b from-gray-800 to-gray-900 shadow-lg
+        bg-gradient-to-b from-gray-800 to-gray-900 shadow-lg select-none
       `}
     >
       {/* Image */}
@@ -103,6 +119,7 @@ export function FieldCard({ minion, isSelected, isAttackable, isOwn, onClick }: 
             src={minion.image}
             alt={minion.name}
             className="w-full h-full object-cover object-top"
+            draggable={false}
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = 'none';
             }}
@@ -146,6 +163,11 @@ export function FieldCard({ minion, isSelected, isAttackable, isOwn, onClick }: 
         {hasLockdown && <span className="text-xs">🔒</span>}
         {hasDoublePower && <span className="text-xs">💀</span>}
       </div>
+
+      {/* Can act indicator */}
+      {canAct && !isSelected && (
+        <div className="absolute top-0.5 left-0.5 w-2 h-2 bg-green-400 rounded-full animate-ping" />
+      )}
     </motion.div>
   );
 }

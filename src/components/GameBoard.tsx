@@ -8,13 +8,14 @@ import HeroPortrait from './HeroPortrait';
 import ManaBar from './ManaBar';
 import AbilityPanel from './AbilityPanel';
 import GameLog from './GameLog';
+import HowToPlay from './HowToPlay';
 
 type UIMode =
   | 'idle'
-  | 'placing'           // Selected hand card to play
-  | 'selected_minion'   // Selected own minion → show ability panel
-  | 'attacking'         // Waiting for attack target
-  | 'skill_target';     // Waiting for skill target
+  | 'placing'
+  | 'selected_minion'
+  | 'attacking'
+  | 'skill_target';
 
 export default function GameBoard() {
   const { game, playCardToSlot, attackTarget, useAttackSkill, useDefenseSkill, endTurn, resetGame } = useGameStore();
@@ -25,6 +26,8 @@ export default function GameBoard() {
   const [pendingSkill, setPendingSkill] = useState<'attack' | 'defense' | null>(null);
   const [skillTargets, setSkillTargets] = useState<string[]>([]);
   const [targetsNeeded, setTargetsNeeded] = useState(0);
+  const [showHelp, setShowHelp] = useState(false);
+  const [dragCardId, setDragCardId] = useState<string | null>(null);
 
   if (!game) return null;
 
@@ -45,20 +48,45 @@ export default function GameBoard() {
     setTargetsNeeded(0);
   }, []);
 
-  // ── Hand card click ──
+  // ── 상태 안내 메시지 ──
+  const getStatusMsg = () => {
+    if (!isPlayerTurn) return '⏳ AI가 생각 중...';
+    switch (uiMode) {
+      case 'idle': return '✨ 카드를 드래그하거나 클릭해서 필드에 놓으세요 | 내 카드 클릭 → 공격/스킬';
+      case 'placing': return `📌 ${selectedCard?.name} 선택됨 — 아래 빈 슬롯에 드롭하거나 클릭하세요 | ESC 취소`;
+      case 'selected_minion': return `${selectedMinion?.name} 선택됨 — ⚔️ 공격 또는 스킬 패널 선택 | ESC 취소`;
+      case 'attacking': return '🎯 공격할 적 카드 또는 적 영웅(상단 얼굴)을 클릭하세요 | ESC 취소';
+      case 'skill_target': return `🎯 스킬 대상 선택 (${skillTargets.length}/${targetsNeeded}) | ESC 취소`;
+    }
+  };
+
+  // ── 드래그 앤 드롭 ──
+  const handleDragStart = (card: CardDef) => {
+    setDragCardId(card.id);
+    setSelectedCard(card);
+    setUiMode('placing');
+  };
+
+  const handleDrop = (slot: number) => {
+    const card = selectedCard ?? game.playerHand.find((c) => c.id === dragCardId);
+    if (card && game.playerMana >= card.mana) {
+      playCardToSlot(card, slot);
+    }
+    setDragCardId(null);
+    resetUI();
+  };
+
+  // ── 핸드 카드 클릭 ──
   const handleHandCardClick = (card: CardDef) => {
     if (!isPlayerTurn) return;
     if (game.playerMana < card.mana) return;
-    if (uiMode === 'placing' && selectedCard?.id === card.id) {
-      resetUI();
-      return;
-    }
+    if (uiMode === 'placing' && selectedCard?.id === card.id) { resetUI(); return; }
     resetUI();
     setSelectedCard(card);
     setUiMode('placing');
   };
 
-  // ── Own field slot click ──
+  // ── 내 필드 슬롯 클릭 ──
   const handleOwnSlotClick = (slot: number, minion: Minion | null) => {
     if (!isPlayerTurn) return;
 
@@ -69,15 +97,11 @@ export default function GameBoard() {
     }
 
     if (uiMode === 'skill_target' && pendingSkill && selectedMinionId) {
-      // Swap targets own minion
       if (minion && minion.instanceId !== selectedMinionId) {
         const newTargets = [...skillTargets, minion.instanceId];
         if (newTargets.length >= targetsNeeded) {
-          if (pendingSkill === 'attack') {
-            useAttackSkill(selectedMinionId, newTargets);
-          } else {
-            useDefenseSkill(selectedMinionId, newTargets);
-          }
+          if (pendingSkill === 'attack') useAttackSkill(selectedMinionId, newTargets);
+          else useDefenseSkill(selectedMinionId, newTargets);
           resetUI();
         } else {
           setSkillTargets(newTargets);
@@ -87,11 +111,7 @@ export default function GameBoard() {
     }
 
     if (minion) {
-      if (uiMode === 'selected_minion' && selectedMinionId === minion.instanceId) {
-        // deselect
-        resetUI();
-        return;
-      }
+      if (uiMode === 'selected_minion' && selectedMinionId === minion.instanceId) { resetUI(); return; }
       resetUI();
       setSelectedMinionId(minion.instanceId);
       setUiMode('selected_minion');
@@ -100,13 +120,12 @@ export default function GameBoard() {
     }
   };
 
-  // ── Enemy field slot click ──
+  // ── 적 필드 슬롯 클릭 ──
   const handleEnemySlotClick = (_slot: number, minion: Minion | null) => {
     if (!isPlayerTurn) return;
 
     if (uiMode === 'attacking' && selectedMinionId) {
-      if (minion) {
-        if (minion.statusEffects.includes('ghost')) return; // can't target ghost
+      if (minion && !minion.statusEffects.includes('ghost')) {
         attackTarget(selectedMinionId, minion.instanceId);
       }
       resetUI();
@@ -117,11 +136,8 @@ export default function GameBoard() {
       if (!minion) return;
       const newTargets = [...skillTargets, minion.instanceId];
       if (newTargets.length >= targetsNeeded) {
-        if (pendingSkill === 'attack') {
-          useAttackSkill(selectedMinionId, newTargets);
-        } else {
-          useDefenseSkill(selectedMinionId, newTargets);
-        }
+        if (pendingSkill === 'attack') useAttackSkill(selectedMinionId, newTargets);
+        else useDefenseSkill(selectedMinionId, newTargets);
         resetUI();
       } else {
         setSkillTargets(newTargets);
@@ -129,101 +145,94 @@ export default function GameBoard() {
     }
   };
 
-  // ── Hero click ──
+  // ── AI 영웅 클릭 ──
   const handleAIHeroClick = () => {
-    if (!isPlayerTurn) return;
-    if (uiMode === 'attacking' && selectedMinionId) {
-      attackTarget(selectedMinionId, 'ai_hero');
-      resetUI();
-    }
+    if (!isPlayerTurn || uiMode !== 'attacking' || !selectedMinionId) return;
+    attackTarget(selectedMinionId, 'ai_hero');
+    resetUI();
   };
 
-  // ── Ability panel actions ──
+  // ── 스킬 패널 ──
   const handleUseAttackAbility = () => {
     if (!selectedMinion) return;
-    const ability = selectedMinion.attackAbility;
-    const needsTarget = ['knockback', 'snipe', 'push_two', 'pull'].includes(ability.type);
-    const selfTarget = ['double_shot', 'double_turn', 'push_all', 'push_outward', 'summon_star'].includes(ability.type);
-
-    if (selfTarget) {
-      useAttackSkill(selectedMinion.instanceId, []);
-      resetUI();
-    } else if (needsTarget) {
-      const needed = ability.type === 'snipe' || ability.type === 'push_two' ? 2 : 1;
-      setPendingSkill('attack');
-      setSkillTargets([]);
-      setTargetsNeeded(needed);
-      setUiMode('skill_target');
-    } else {
-      useAttackSkill(selectedMinion.instanceId, []);
-      resetUI();
-    }
+    const { type } = selectedMinion.attackAbility;
+    const selfTarget = ['double_shot', 'double_turn', 'push_all', 'push_outward', 'summon_star'].includes(type);
+    if (selfTarget) { useAttackSkill(selectedMinion.instanceId, []); resetUI(); return; }
+    const needed = type === 'snipe' || type === 'push_two' ? 2 : 1;
+    setPendingSkill('attack');
+    setSkillTargets([]);
+    setTargetsNeeded(needed);
+    setUiMode('skill_target');
   };
 
   const handleUseDefenseAbility = () => {
     if (!selectedMinion) return;
-    const ability = selectedMinion.defenseAbility;
-    const needsEnemyTarget = ['lockdown'].includes(ability.type);
-    const needsOwnTarget = ['swap'].includes(ability.type);
-    const selfApply = ['ghost', 'double_power', 'cond_disguise', 'cond_reverse'].includes(ability.type);
-
-    if (selfApply) {
-      useDefenseSkill(selectedMinion.instanceId, []);
-      resetUI();
-    } else if (needsEnemyTarget) {
-      setPendingSkill('defense');
-      setSkillTargets([]);
-      setTargetsNeeded(1);
-      setUiMode('skill_target');
-    } else if (needsOwnTarget) {
-      setPendingSkill('defense');
-      setSkillTargets([]);
-      setTargetsNeeded(1);
-      setUiMode('skill_target');
-    } else {
-      useDefenseSkill(selectedMinion.instanceId, []);
-      resetUI();
-    }
+    const { type } = selectedMinion.defenseAbility;
+    const selfApply = ['ghost', 'double_power', 'cond_disguise', 'cond_reverse'].includes(type);
+    if (selfApply) { useDefenseSkill(selectedMinion.instanceId, []); resetUI(); return; }
+    setPendingSkill('defense');
+    setSkillTargets([]);
+    setTargetsNeeded(1);
+    setUiMode('skill_target');
   };
 
   const handleStartAttack = () => {
-    if (!selectedMinion) return;
-    if (selectedMinion.attacksLeftThisTurn <= 0) return;
+    if (!selectedMinion || selectedMinion.attacksLeftThisTurn <= 0) return;
     setUiMode('attacking');
   };
 
   const isEnemyAttackable = uiMode === 'attacking';
-  const isAIHeroAttackable = uiMode === 'attacking' && aiField.every((m) => m === null);
+  const isAIHeroAttackable = uiMode === 'attacking';
 
   return (
-    <div className="w-full h-screen bg-gradient-to-b from-indigo-950 via-purple-950 to-indigo-950 flex flex-col relative overflow-hidden">
-      {/* Starfield background */}
-      <div className="absolute inset-0 opacity-30 pointer-events-none">
+    <div
+      className="w-full h-screen bg-gradient-to-b from-indigo-950 via-purple-950 to-indigo-950 flex flex-col relative overflow-hidden"
+      onKeyDown={(e) => e.key === 'Escape' && resetUI()}
+      tabIndex={0}
+    >
+      {/* Starfield */}
+      <div className="absolute inset-0 opacity-20 pointer-events-none">
         {Array.from({ length: 40 }).map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-1 h-1 bg-white rounded-full"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              opacity: Math.random() * 0.8 + 0.2,
-            }}
-          />
+          <div key={i} className="absolute w-1 h-1 bg-white rounded-full"
+            style={{ left: `${(i * 37 + 13) % 100}%`, top: `${(i * 53 + 7) % 100}%`, opacity: 0.4 + (i % 5) * 0.12 }} />
         ))}
       </div>
 
-      {/* ── TOP: AI Area ── */}
-      <div className="flex items-center px-4 py-2 gap-3 z-10">
-        <HeroPortrait hero={game.aiHero} isEnemy onClick={isAIHeroAttackable ? handleAIHeroClick : undefined} isAttackable={isAIHeroAttackable} />
+      {/* ── TOP BAR: 메뉴 + AI 영역 ── */}
+      <div className="flex items-center px-3 py-2 gap-3 z-10">
+        {/* 메뉴로 돌아가기 */}
+        <button
+          onClick={() => resetGame()}
+          className="px-3 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white text-xs font-bold rounded-lg border border-gray-600 transition-all flex-shrink-0"
+        >
+          ← 메뉴
+        </button>
+
+        <HeroPortrait
+          hero={game.aiHero}
+          isEnemy
+          onClick={isAIHeroAttackable ? handleAIHeroClick : undefined}
+          isAttackable={isAIHeroAttackable}
+        />
+
         <div className="flex-1" />
-        <div className="text-gray-400 text-xs">
+
+        <div className="text-gray-400 text-xs hidden sm:block">
           핸드: {game.aiHand.length}장 | 덱: {game.aiDeck.length}장
         </div>
         <ManaBar current={game.aiMana} max={game.aiMaxMana} />
+
+        {/* 도움말 */}
+        <button
+          onClick={() => setShowHelp(true)}
+          className="w-7 h-7 rounded-full bg-purple-700 hover:bg-purple-600 text-white text-sm font-bold border border-purple-400 flex items-center justify-center transition-all flex-shrink-0"
+        >
+          ?
+        </button>
       </div>
 
       {/* ── AI FIELD ── */}
-      <div className="flex justify-center gap-2 px-4 py-2 z-10">
+      <div className="flex justify-center gap-2 px-4 py-1 z-10">
         {Array.from({ length: 6 }).map((_, i) => {
           const minion = aiField[i] ?? null;
           return (
@@ -240,21 +249,29 @@ export default function GameBoard() {
         <GameLog logs={game.log} />
       </div>
 
+      {/* ── STATUS BAR ── */}
+      <div className={`
+        mx-4 py-1.5 px-4 rounded-lg text-center text-xs font-medium z-10 transition-all
+        ${uiMode === 'idle' ? 'text-gray-400 bg-black/20' : 'text-yellow-300 bg-yellow-900/30 border border-yellow-700/50'}
+      `}>
+        {getStatusMsg()}
+      </div>
+
       {/* ── DIVIDER ── */}
-      <div className="flex items-center gap-4 px-6 z-10">
+      <div className="flex items-center gap-4 px-6 py-1 z-10">
         <div className="flex-1 h-px bg-gradient-to-r from-transparent via-purple-500/50 to-transparent" />
         <div className="text-purple-300 text-sm font-bold tracking-widest">
-          TURN {game.turn} — {isPlayerTurn ? '내 차례' : 'AI 차례'}
+          TURN {game.turn}
         </div>
         <div className="flex-1 h-px bg-gradient-to-l from-transparent via-purple-500/50 to-transparent" />
       </div>
 
       {/* ── PLAYER FIELD ── */}
-      <div className="flex justify-center gap-2 px-4 py-2 z-10 relative">
+      <div className="flex justify-center gap-2 px-4 py-1 z-10 relative">
         {Array.from({ length: 6 }).map((_, i) => {
           const minion = playerField[i] ?? null;
           const isSelected = minion?.instanceId === selectedMinionId;
-          const isPlayTarget = uiMode === 'placing' && !minion;
+          const isPlayTarget = (uiMode === 'placing' || dragCardId !== null) && !minion;
           return (
             <FieldSlot
               key={i}
@@ -264,11 +281,12 @@ export default function GameBoard() {
               isSelected={isSelected}
               isPlayTarget={isPlayTarget}
               onClick={() => handleOwnSlotClick(i, minion)}
+              onDrop={handleDrop}
             />
           );
         })}
 
-        {/* Ability panel popup */}
+        {/* Ability panel */}
         {uiMode === 'selected_minion' && selectedMinion && (
           <AbilityPanel
             minion={selectedMinion}
@@ -279,28 +297,26 @@ export default function GameBoard() {
         )}
       </div>
 
-      {/* ── STATUS BAR ── */}
-      {uiMode !== 'idle' && uiMode !== 'placing' && uiMode !== 'selected_minion' && (
-        <div className="text-center text-yellow-300 text-sm py-1 z-10">
-          {uiMode === 'attacking' && '공격할 대상을 선택하세요'}
-          {uiMode === 'skill_target' && `스킬 대상 선택 (${skillTargets.length}/${targetsNeeded})`}
-        </div>
-      )}
-
-      {/* Attack button */}
-      {uiMode === 'selected_minion' && selectedMinion && selectedMinion.attacksLeftThisTurn > 0 && (
-        <div className="flex justify-center z-10 -mt-1">
-          <button
-            onClick={handleStartAttack}
-            className="px-4 py-1 bg-red-600 hover:bg-red-500 text-white text-sm font-bold rounded-full border border-red-400 shadow-lg transition-all"
-          >
-            ⚔️ 공격
-          </button>
-        </div>
-      )}
+      {/* ── 공격 버튼 (선택된 미니언이 공격 가능할 때) ── */}
+      <div className="flex justify-center gap-2 z-10 h-8">
+        {uiMode === 'selected_minion' && selectedMinion && (
+          <>
+            {selectedMinion.attacksLeftThisTurn > 0 ? (
+              <button
+                onClick={handleStartAttack}
+                className="px-5 py-1 bg-red-600 hover:bg-red-500 text-white text-sm font-bold rounded-full border border-red-400 shadow-lg transition-all animate-pulse"
+              >
+                ⚔️ 공격하기
+              </button>
+            ) : (
+              <span className="text-gray-500 text-xs self-center">이미 공격했거나 소환된 턴</span>
+            )}
+          </>
+        )}
+      </div>
 
       {/* ── PLAYER INFO BAR ── */}
-      <div className="flex items-center px-4 py-2 gap-3 z-10">
+      <div className="flex items-center px-3 py-1 gap-3 z-10">
         <HeroPortrait hero={game.playerHero} />
         <ManaBar current={game.playerMana} max={game.playerMaxMana} />
         <div className="flex-1" />
@@ -316,12 +332,12 @@ export default function GameBoard() {
             }
           `}
         >
-          {isPlayerTurn ? '턴 종료' : 'AI 차례...'}
+          {isPlayerTurn ? '턴 종료 →' : '⏳ AI...'}
         </button>
       </div>
 
       {/* ── HAND ── */}
-      <div className="flex justify-center gap-2 px-4 pb-3 z-10 overflow-x-auto">
+      <div className="flex justify-center gap-2 px-4 pb-2 z-10 overflow-x-auto min-h-[11rem] items-end">
         {game.playerHand.map((card) => (
           <HandCard
             key={card.id}
@@ -329,6 +345,7 @@ export default function GameBoard() {
             isSelected={selectedCard?.id === card.id}
             isPlayable={game.playerMana >= card.mana && isPlayerTurn}
             onClick={() => handleHandCardClick(card)}
+            onDragStart={() => handleDragStart(card)}
           />
         ))}
         {game.playerHand.length === 0 && (
@@ -357,16 +374,16 @@ export default function GameBoard() {
               </div>
               <div className="flex gap-4 justify-center">
                 <button
-                  onClick={() => { resetGame(); }}
-                  className="px-8 py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl border border-purple-400 text-lg transition-all"
+                  onClick={() => resetGame()}
+                  className="px-8 py-3 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-xl border border-gray-500 text-lg transition-all"
                 >
-                  메인 메뉴
+                  ← 메인 메뉴
                 </button>
                 <button
-                  onClick={() => { useGameStore.getState().startGame(); }}
+                  onClick={() => useGameStore.getState().startGame()}
                   className="px-8 py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl border border-green-400 text-lg transition-all"
                 >
-                  다시 하기
+                  🔄 다시 하기
                 </button>
               </div>
             </motion.div>
@@ -374,15 +391,8 @@ export default function GameBoard() {
         )}
       </AnimatePresence>
 
-      {/* ESC to cancel */}
-      {uiMode !== 'idle' && (
-        <button
-          onClick={resetUI}
-          className="fixed bottom-4 right-4 z-50 text-gray-400 text-xs hover:text-white"
-        >
-          [ESC] 취소
-        </button>
-      )}
+      {/* ── HOW TO PLAY ── */}
+      {showHelp && <HowToPlay onClose={() => setShowHelp(false)} />}
     </div>
   );
 }
