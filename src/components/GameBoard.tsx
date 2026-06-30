@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 import type { CardDef, Minion } from '../types/game';
@@ -27,8 +27,53 @@ export default function GameBoard() {
   const [targetsNeeded, setTargetsNeeded] = useState(0);
   const [showHelp, setShowHelp] = useState(false);
   const [dragCardId, setDragCardId] = useState<string | null>(null);
+  const [attackingId, setAttackingId] = useState<string | null>(null);
+  const [hittingIds, setHittingIds] = useState<Set<string>>(new Set());
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [playerHeroHit, setPlayerHeroHit] = useState(false);
+  const [aiHeroHit, setAiHeroHit] = useState(false);
+
+  const playerHpMapRef = useRef<Map<string, number>>(new Map());
+  const aiHpMapRef = useRef<Map<string, number>>(new Map());
+  const prevPlayerHeroHp = useRef<number>(30);
+  const prevAiHeroHp = useRef<number>(30);
 
   if (!game) return null;
+
+  // Detect HP changes to trigger hit/death animations
+  useEffect(() => {
+    const newHits = new Set<string>();
+    game.playerField.forEach(m => {
+      if (!m) return;
+      const prev = playerHpMapRef.current.get(m.instanceId);
+      if (prev !== undefined && m.hp < prev) newHits.add(m.instanceId);
+    });
+    game.aiField.forEach(m => {
+      if (!m) return;
+      const prev = aiHpMapRef.current.get(m.instanceId);
+      if (prev !== undefined && m.hp < prev) newHits.add(m.instanceId);
+    });
+    if (newHits.size > 0) {
+      setHittingIds(newHits);
+      setTimeout(() => setHittingIds(new Set()), 450);
+    }
+    if (game.playerHero.hp < prevPlayerHeroHp.current) {
+      setPlayerHeroHit(true);
+      setTimeout(() => setPlayerHeroHit(false), 450);
+    }
+    if (game.aiHero.hp < prevAiHeroHp.current) {
+      setAiHeroHit(true);
+      setTimeout(() => setAiHeroHit(false), 450);
+    }
+    const pm = new Map<string, number>();
+    game.playerField.forEach(m => { if (m) pm.set(m.instanceId, m.hp); });
+    playerHpMapRef.current = pm;
+    const am = new Map<string, number>();
+    game.aiField.forEach(m => { if (m) am.set(m.instanceId, m.hp); });
+    aiHpMapRef.current = am;
+    prevPlayerHeroHp.current = game.playerHero.hp;
+    prevAiHeroHp.current = game.aiHero.hp;
+  }, [game]);
 
   const isPlayerTurn = game.activePlayer === 'player';
   const playerField = game.playerField;
@@ -120,14 +165,20 @@ export default function GameBoard() {
   };
 
   // ── 적 필드 슬롯 클릭 ──
-  const handleEnemySlotClick = (_slot: number, minion: Minion | null) => {
-    if (!isPlayerTurn) return;
+  const handleEnemySlotClick = async (_slot: number, minion: Minion | null) => {
+    if (!isPlayerTurn || isAnimating) return;
 
     if (uiMode === 'attacking' && selectedMinionId) {
-      if (minion && !minion.statusEffects.includes('ghost')) {
-        attackTarget(selectedMinionId, minion.instanceId);
-      }
+      const attackerId = selectedMinionId;
       resetUI();
+      if (minion && !minion.statusEffects.includes('ghost')) {
+        setIsAnimating(true);
+        setAttackingId(attackerId);
+        await new Promise(r => setTimeout(r, 400));
+        attackTarget(attackerId, minion.instanceId);
+        setAttackingId(null);
+        setIsAnimating(false);
+      }
       return;
     }
 
@@ -145,10 +196,16 @@ export default function GameBoard() {
   };
 
   // ── AI 영웅 클릭 ──
-  const handleAIHeroClick = () => {
-    if (!isPlayerTurn || uiMode !== 'attacking' || !selectedMinionId) return;
-    attackTarget(selectedMinionId, 'ai_hero');
+  const handleAIHeroClick = async () => {
+    if (!isPlayerTurn || uiMode !== 'attacking' || !selectedMinionId || isAnimating) return;
+    const attackerId = selectedMinionId;
     resetUI();
+    setIsAnimating(true);
+    setAttackingId(attackerId);
+    await new Promise(r => setTimeout(r, 400));
+    attackTarget(attackerId, 'ai_hero');
+    setAttackingId(null);
+    setIsAnimating(false);
   };
 
   // ── 스킬 패널 ──
@@ -205,6 +262,7 @@ export default function GameBoard() {
           isEnemy
           onClick={isAIHeroAttackable ? handleAIHeroClick : undefined}
           isAttackable={isAIHeroAttackable}
+          isHit={aiHeroHit}
         />
 
         <div className="flex-1" />
@@ -234,6 +292,7 @@ export default function GameBoard() {
               minion={minion}
               isOwn={false}
               isAttackable={isEnemyAttackable && !!minion && !minion.statusEffects.includes('ghost')}
+              isHit={!!minion && hittingIds.has(minion.instanceId)}
               onClick={() => handleEnemySlotClick(i, minion)}
             />
           );
@@ -271,6 +330,8 @@ export default function GameBoard() {
               isOwn={true}
               isSelected={isSelected}
               isPlayTarget={isPlayTarget}
+              isAttacking={!!minion && minion.instanceId === attackingId}
+              isHit={!!minion && hittingIds.has(minion.instanceId)}
               onClick={() => handleOwnSlotClick(i, minion)}
               onDrop={handleDrop}
             />
@@ -308,7 +369,7 @@ export default function GameBoard() {
 
       {/* ── PLAYER INFO BAR ── */}
       <div className="flex items-center px-3 py-1 gap-3 z-10">
-        <HeroPortrait hero={game.playerHero} />
+        <HeroPortrait hero={game.playerHero} isHit={playerHeroHit} />
         <ManaBar current={game.playerMana} max={game.playerMaxMana} />
         <div className="flex-1" />
         <div className="text-gray-400 text-xs">덱: {game.playerDeck.length}장</div>
