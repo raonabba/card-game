@@ -420,12 +420,12 @@ export default function GameBoard() {
       <AnimatePresence>
         {summonVideo && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
+            initial={{ opacity: 0, scale: 0.85 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
+            exit={{ opacity: 0, scale: 0.85 }}
             transition={{ duration: 0.2 }}
-            className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none"
-            style={{ background: 'rgba(0,0,0,0.45)' }}
+            className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+            style={{ background: 'rgba(0,0,0,0.5)' }}
           >
             <video
               key={summonVideo}
@@ -433,8 +433,7 @@ export default function GameBoard() {
               autoPlay
               muted
               playsInline
-              className="rounded-2xl shadow-2xl"
-              style={{ maxWidth: '72vw', maxHeight: '72vh' }}
+              style={{ maxWidth: '80vw', maxHeight: '85vh' }}
               onEnded={() => setSummonVideo(null)}
             />
           </motion.div>
